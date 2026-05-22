@@ -1,0 +1,70 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-cyber-green: #00ff41;
+  --color-cyber-blue: #0ae2ff;
+  --color-cyber-purple: #b338ff;
+  --color-cyber-dark: #050b14;
+  --color-cyber-darker: #02040a;
+
+  --font-sans: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-cyber-darker text-gray-300 font-sans antialiased overflow-x-hidden;
+  }
+}
+
+@layer utilities {
+  .text-glow-blue {
+    text-shadow: 0 0 10px rgba(10, 226, 255, 0.7), 0 0 20px rgba(10, 226, 255, 0.5);
+  }
+  .text-glow-green {
+    text-shadow: 0 0 5px rgba(0, 255, 65, 0.7);
+  }
+  .border-glow-blue {
+    box-shadow: 0 0 10px rgba(10, 226, 255, 0.3), inset 0 0 10px rgba(10, 226, 255, 0.3);
+  }
+  .border-glow-green {
+    box-shadow: 0 0 10px rgba(0, 255, 65, 0.3), inset 0 0 10px rgba(0, 255, 65, 0.3);
+  }
+  
+  .glass-panel {
+    @apply bg-black/40 backdrop-blur-md border border-white/10;
+  }
+}
+
+.hide-three-scroll *::-webkit-scrollbar {
+  display: none !important;
+}
+.hide-three-scroll * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+/* Custom Scrollbar */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-cyber-darker;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-cyber-blue/50 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-cyber-blue;
+}

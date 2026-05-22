@@ -1,0 +1,84 @@
+{
+  "admin": {
+    "username": "admin",
+    "passwordHash": "$2b$10$LHFnmuPuOnuAte57Kxsm.uIHaB1viJWug4ukXpJJ/joQt9uHvmNai"
+  },
+  "projects": [
+    {
+      "id": "PRJ-001",
+      "title": "Neon E-Commerce",
+      "cat": "Web App",
+      "status": "ACTIVE",
+      "description": "Detailed description of the Neon E-Commerce",
+      "dateCreated": "2024-01-01",
+      "link": "https://daiken.dev"
+    }
+  ],
+  "certificates": [
+    {
+      "id": "CERT-001",
+      "title": "Advanced React Patterns",
+      "issuer": "Frontend Masters",
+      "year": 2023,
+      "description": "Details about Advanced React Patterns"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "NOTIF-001",
+      "type": "SYSTEM",
+      "message": "System update deployed successfully.",
+      "time": "2026-05-22T10:02:11.474Z",
+      "read": false
+    }
+  ],
+  "categories": [
+    {
+      "id": "CAT-1",
+      "type": "portfolio",
+      "name": "Web App"
+    },
+    {
+      "id": "CAT-2",
+      "type": "portfolio",
+      "name": "Mobile App"
+    },
+    {
+      "id": "CAT-3",
+      "type": "certificate",
+      "name": "Frontend"
+    }
+  ],
+  "settings": {
+    "siteTitle": "Daiken's Portfolio",
+    "contactEmail": "contact@daiken.dev",
+    "socialLinks": {
+      "github": "https://github.com/daiken",
+      "linkedin": "https://linkedin.com/in/daiken",
+      "twitter": "https://twitter.com/daiken",
+      "instagram": "",
+      "email": "contact@daiken.dev",
+      "whatsapp": ""
+    },
+    "maintenanceMode": false,
+    "heroData": {
+      "typeText1": "> System Initialized...",
+      "typeText2": "> Loading Portfolio_AI_Engineer/Designer_",
+      "heading": "Architecting Intelligence & Digital Experiences.",
+      "description": "Fusing code, design, and machine learning to build future-ready solutions. Welcome to my neural workspace.",
+      "exploreText": "EXPLORE MY WORK",
+      "cvText": "DOWNLOAD_CV.exe"
+    },
+    "aboutData": {
+      "fingerprintText": "IDENTIFICATION",
+      "fingerprintActiveText": "ACCESS GRANTED",
+      "leftTerminalTitle": "PROFILE V1.0",
+      "skillsTitle": "KEAHLIAN TEKNIS",
+      "skillsList": "Front-End Development, Back-End, Desain UI/UX (Figma), Data Science, Cloud Architecture",
+      "sysStats": "Sys_stats: OK | CPU: 34% | RAM: 4.2GB",
+      "rightTerminalTitle": "TERMINAL V1.0",
+      "scanCompleteText": "[BIOMETRIC SCAN COMPLETE]",
+      "scanDetails": "USER_ID: 9942\nACCESS: Administrator\nHACKER_MODE: ENGAGED"
+    }
+  }
+}
