@@ -22,22 +22,22 @@ const limiter = rateLimit({
   message: { error: 'Too many requests, please try again later.' }
 });
 
-// Only configure Cloudinary if all credentials look valid (not placeholders)
-const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-const cloudApiKey = process.env.CLOUDINARY_API_KEY;
-const cloudApiSecret = process.env.CLOUDINARY_API_SECRET;
-const cloudinaryReady =
-  cloudName && cloudApiKey && cloudApiSecret &&
-  cloudName !== 'your_cloud_name' &&
-  cloudApiKey !== 'your_api_key' &&
-  cloudApiSecret !== 'your_api_secret';
+// Cloudinary is DISABLED by default.
+// To enable: set ENABLE_CLOUDINARY=true in .env with valid credentials.
+const cloudinaryReady = process.env.ENABLE_CLOUDINARY === 'true' &&
+  !!process.env.CLOUDINARY_CLOUD_NAME &&
+  !!process.env.CLOUDINARY_API_KEY &&
+  !!process.env.CLOUDINARY_API_SECRET;
 
 if (cloudinaryReady) {
   cloudinary.config({
-    cloud_name: cloudName,
-    api_key: cloudApiKey,
-    api_secret: cloudApiSecret
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
   });
+  console.log('Cloudinary enabled for cloud:', process.env.CLOUDINARY_CLOUD_NAME);
+} else {
+  console.log('Cloudinary disabled — local file storage will be used.');
 }
 
 const uploadDir = process.env.VERCEL ? '/tmp' : 'uploads/';
