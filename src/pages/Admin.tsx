@@ -118,7 +118,7 @@ function FileUploadArea({ name, defaultValue, accept = "image/*", label = "Drop 
     }
   };
 
-  const isImage = imageUrl && imageUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) != null;
+  const isImage = imageUrl && (imageUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)/i) != null || imageUrl.includes('res.cloudinary.com') || imageUrl.startsWith('data:image/'));
 
   return (
     <>
@@ -163,6 +163,95 @@ function FileUploadArea({ name, defaultValue, accept = "image/*", label = "Drop 
         <button type="button" onClick={(e) => { e.stopPropagation(); setImageUrl(''); }} className="text-xs font-mono text-red-500 mt-2 hover:underline">
           REMOVE_FILE
         </button>
+      )}
+    </>
+  );
+}
+
+function MultipleFileUploadArea({ name, defaultValues = [], accept = "image/*,video/*,.pdf,.doc,.docx", label = "Drop files here" }: { name: string, defaultValues?: string[], accept?: string, label?: string }) {
+  const [mediaUrls, setMediaUrls] = useState<string[]>(Array.isArray(defaultValues) ? defaultValues : []);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleUpload = async (files: FileList | File[]) => {
+    setUploading(true);
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append('image', file);
+        try {
+          const res = await adminFetch('/api/admin/upload', { method: 'POST', body: formData });
+          const data = await res.json();
+          if (data.url) {
+              setMediaUrls(prev => [...prev, data.url]);
+          }
+        } catch (e) {
+          console.error(e);
+          alert('Upload failed for some files');
+        }
+    }
+    setUploading(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleUpload(e.dataTransfer.files);
+    }
+  };
+
+  const isImage = (url: string) => url && (url.match(/\.(jpeg|jpg|gif|png|webp|svg)/i) != null || url.includes('res.cloudinary.com') || url.startsWith('data:image/'));
+
+  return (
+    <>
+      <input type="hidden" name={name} value={JSON.stringify(mediaUrls)} />
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={(e) => e.target.files && handleUpload(e.target.files)} 
+        className="hidden" 
+        accept={accept}
+        multiple
+      />
+      
+      <div 
+        onDragOver={(e) => e.preventDefault()} 
+        onDrop={handleDrop} 
+        onClick={() => fileInputRef.current?.click()}
+        className="w-full relative overflow-hidden border-2 border-dashed border-white/10 p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-cyber-blue/50 transition-colors bg-black/20"
+      >
+        <UploadCloud size={32} className="text-cyber-blue mb-4" />
+        <p className="font-mono text-sm text-white">{label}</p>
+        <p className="font-mono text-xs text-gray-500 mt-2">or click to browse from your device (Multiple files allowed)</p>
+        
+        {uploading && (
+          <div className="absolute inset-0 bg-black/80 flex items-center justify-center backdrop-blur-sm z-10">
+            <span className="font-mono text-sm text-cyber-blue animate-pulse">UPLOADING...</span>
+          </div>
+        )}
+      </div>
+
+      {mediaUrls.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
+              {mediaUrls.map((url, i) => (
+                  <div key={i} className="relative group border border-white/10 rounded overflow-hidden">
+                      {isImage(url) ? (
+                          <img src={url} alt="Uploaded" className="w-full aspect-video object-cover" />
+                      ) : (
+                          <div className="w-full aspect-video flex-col bg-white/5 flex items-center justify-center p-2 break-all overflow-hidden text-[10px] text-cyber-blue font-mono">
+                              <UploadCloud size={16} />
+                              <span className="truncate w-full mt-1">{url}</span>
+                          </div>
+                      )}
+                      <button type="button" onClick={(e) => {
+                          e.stopPropagation();
+                          setMediaUrls(urls => urls.filter((_, idx) => idx !== i));
+                      }} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded font-mono text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
+                          X
+                      </button>
+                  </div>
+              ))}
+          </div>
       )}
     </>
   );
@@ -282,6 +371,8 @@ function AdminPortfolio() {
       dateCreated: formData.get('dateCreated'),
       link: formData.get('link'),
       status: formData.get('status'),
+      image: formData.get('image'),
+      media: JSON.parse((formData.get('media') as string) || '[]')
     };
     adminFetch('/api/admin/projects', { method: 'POST', body: JSON.stringify(doc) })
       .then(() => { setIsAddOpen(false); loadProjects(); });
@@ -297,6 +388,8 @@ function AdminPortfolio() {
       dateCreated: formData.get('dateCreated'),
       link: formData.get('link'),
       status: formData.get('status'),
+      image: formData.get('image'),
+      media: JSON.parse((formData.get('media') as string) || '[]')
     };
     adminFetch(`/api/admin/projects/${editProject.id}`, { method: 'PUT', body: JSON.stringify(doc) })
       .then(() => { setEditProject(null); loadProjects(); });
@@ -398,8 +491,12 @@ function AdminPortfolio() {
             </div>
           </div>
           <div>
-            <label className="block font-mono text-xs text-cyber-blue mb-2">MEDIA CONTENTS (DRAG & DROP)</label>
+            <label className="block font-mono text-xs text-cyber-blue mb-2">COVER IMAGE (DRAG & DROP)</label>
             <FileUploadArea name="image" />
+          </div>
+          <div>
+              <label className="block font-mono text-xs text-cyber-blue mb-2 mt-4">EXTRA MEDIA CONTENTS (OPTIONAL)</label>
+              <MultipleFileUploadArea name="media" />
           </div>
           <div className="pt-4 flex justify-end gap-2">
             <button type="button" onClick={() => setIsAddOpen(false)} className="px-4 py-2 border border-gray-600 text-gray-400 hover:text-white font-mono text-sm">CANCEL</button>
@@ -451,8 +548,12 @@ function AdminPortfolio() {
               </div>
             </div>
             <div>
-              <label className="block font-mono text-xs text-cyber-blue mb-2">MEDIA CONTENTS (DRAG & DROP)</label>
+              <label className="block font-mono text-xs text-cyber-blue mb-2">COVER IMAGE (DRAG & DROP)</label>
               <FileUploadArea name="image" defaultValue={editProject.image} />
+            </div>
+            <div>
+              <label className="block font-mono text-xs text-cyber-blue mb-2 mt-4">EXTRA MEDIA CONTENTS (OPTIONAL)</label>
+              <MultipleFileUploadArea name="media" defaultValues={editProject.media || []} />
             </div>
             <div className="pt-4 flex justify-end gap-2">
               <button type="button" onClick={() => setEditProject(null)} className="px-4 py-2 border border-gray-600 text-gray-400 hover:text-white font-mono text-sm">CANCEL</button>
@@ -785,6 +886,7 @@ function AdminSettings() {
     const formData = new FormData(e.currentTarget);
     const newSettings = {
       siteTitle: formData.get('siteTitle'),
+      siteLogo: formData.get('siteLogo'),
       contactEmail: formData.get('contactEmail'),
       socialLinks: {
         github: formData.get('github'),
@@ -830,11 +932,7 @@ function AdminSettings() {
             
             <div>
               <label className="block font-mono text-xs text-cyber-blue mb-2">SITE_LOGO (DRAG & DROP)</label>
-              <div className="w-full h-full min-h-[120px] border-2 border-dashed border-white/10 p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:border-cyber-blue/50 transition-colors bg-black/20">
-                <UploadCloud size={24} className="text-cyber-blue mb-2" />
-                <p className="font-mono text-xs text-white">Drop logo image here</p>
-                <p className="font-mono text-[10px] text-gray-500 mt-1">SVG, PNG, or JPG (max 2MB)</p>
-              </div>
+              <FileUploadArea name="siteLogo" defaultValue={settings.siteLogo} accept="image/*" label="Drop logo image here" />
             </div>
           </div>
 

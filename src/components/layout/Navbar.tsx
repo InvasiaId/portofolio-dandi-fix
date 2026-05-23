@@ -36,11 +36,15 @@ export function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
         <a href="#" className="flex items-center gap-2 group">
+          {settings?.siteLogo ? (
+            <img src={settings.siteLogo} alt={title} className="max-h-8 object-contain" />
+          ) : (
           <div className="relative w-8 h-8 flex items-center justify-center">
             <div className="absolute inset-0 border border-cyber-blue/50 rotate-45 group-hover:rotate-90 transition-all duration-500 rounded-sm"></div>
             <div className="absolute inset-2 border border-cyber-green/50 -rotate-45 group-hover:rotate-0 transition-all duration-500 rounded-sm"></div>
             <span className="font-mono text-xs font-bold font-cyber-blue">{title.charAt(0)}</span>
           </div>
+          )}
           <span className="text-xl font-bold tracking-widest text-glow-blue ml-2">{title}</span>
         </a>
 

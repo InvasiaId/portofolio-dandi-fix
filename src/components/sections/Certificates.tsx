@@ -79,11 +79,14 @@ function GlitchCard({ certificate, onClick }: any) {
   }, [certificate]);
 
   const InnerContent = ({ title, issuer }: { title: string; issuer: string }) => (
-    <div className="w-full h-full border border-cyber-blue/30 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-cyber-blue/5 to-transparent relative">
-      <div className="absolute top-4 right-4 font-mono text-xs text-cyber-blue/50">{certificate.year}</div>
-      <h3 className="text-2xl font-bold text-center text-white mb-2 tracking-widest uppercase">{title}</h3>
-      <p className="font-mono text-cyber-blue text-sm">ISSUER: {issuer}</p>
-      <div className="mt-8 border-t border-b border-cyber-blue/20 py-2 w-full text-center font-mono text-[10px] text-gray-500">
+    <div className="w-full h-full border border-cyber-blue/30 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-cyber-blue/5 to-transparent relative group">
+      {certificate.image && (
+         <img src={certificate.image} alt={title} className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-50 transition-opacity mix-blend-screen" />
+      )}
+      <div className="absolute top-4 right-4 font-mono text-xs text-cyber-blue/50 z-10">{certificate.year}</div>
+      <h3 className="text-2xl font-bold text-center text-white mb-2 tracking-widest uppercase z-10 drop-shadow-[0_0_8px_rgba(0,0,0,0.8)]">{title}</h3>
+      <p className="font-mono text-cyber-blue text-sm z-10 drop-shadow-[0_0_8px_rgba(0,0,0,0.8)]">ISSUER: {issuer}</p>
+      <div className="mt-8 border-t border-b border-cyber-blue/20 py-2 w-full text-center font-mono text-[10px] text-gray-500 z-10 backdrop-blur-sm">
         ID: {certId} // VERIFIED
       </div>
     </div>
@@ -239,9 +242,15 @@ export function Certificates() {
                 {selectedCert.title}
               </h2>
               
-              <div className="font-mono text-cyber-green text-sm mb-6">
+              <div className="font-mono text-cyber-green text-sm mb-4">
                 ISSUED BY: {selectedCert.issuer} // {selectedCert.year}
               </div>
+
+              {selectedCert.image && (
+                <div className="mb-6 border border-cyber-blue/30 relative">
+                  <img src={selectedCert.image} alt={selectedCert.title} className="w-full h-auto object-cover max-h-64" />
+                </div>
+              )}
               
               <p className="text-gray-300 font-mono text-sm leading-relaxed">
                 {selectedCert.description || selectedCert.desc}

@@ -22,22 +22,12 @@ const limiter = rateLimit({
   message: { error: 'Too many requests, please try again later.' }
 });
 
-// Cloudinary is DISABLED by default.
-// To enable: set ENABLE_CLOUDINARY=true in .env with valid credentials.
-const cloudinaryReady = process.env.ENABLE_CLOUDINARY === 'true' &&
-  !!process.env.CLOUDINARY_CLOUD_NAME &&
-  !!process.env.CLOUDINARY_API_KEY &&
-  !!process.env.CLOUDINARY_API_SECRET;
-
-if (cloudinaryReady) {
+if (process.env.CLOUDINARY_CLOUD_NAME) {
   cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
   });
-  console.log('Cloudinary enabled for cloud:', process.env.CLOUDINARY_CLOUD_NAME);
-} else {
-  console.log('Cloudinary disabled — local file storage will be used.');
 }
 
 const uploadDir = process.env.VERCEL ? '/tmp' : 'uploads/';
@@ -54,10 +44,10 @@ let dbInitialized = false;
 const defaultDb = {
   admin: { username: 'admin', passwordHash: bcrypt.hashSync('admin123', 10) },
   projects: [
-    { id: 'PRJ-001', title: 'Neon E-Commerce', cat: 'Web App', status: 'ACTIVE', description: 'Detailed description of the Neon E-Commerce', dateCreated: '2024-01-01', link: 'https://daiken.dev', image: '' }
+    { id: 'PRJ-001', title: 'Neon E-Commerce', cat: 'Web App', status: 'ACTIVE', description: 'Detailed description of the Neon E-Commerce', dateCreated: '2024-01-01', link: 'https://daiken.dev' }
   ],
   certificates: [
-    { id: 'CERT-001', title: 'Advanced React Patterns', issuer: 'Frontend Masters', year: 2023, description: 'Details about Advanced React Patterns', image: '', cat: '' }
+    { id: 'CERT-001', title: 'Advanced React Patterns', issuer: 'Frontend Masters', year: 2023, description: 'Details about Advanced React Patterns' }
   ],
   notifications: [
     { id: 'NOTIF-001', type: 'SYSTEM', message: 'System update deployed successfully.', time: new Date().toISOString(), read: false }
@@ -68,8 +58,8 @@ const defaultDb = {
     { id: 'CAT-3', type: 'certificate', name: 'Frontend' }
   ],
   settings: {
-    siteTitle: "Daiken's Portfolio", contactEmail: "contact@daiken.dev",
-    socialLinks: { github: "https://github.com/daiken", linkedin: "https://linkedin.com/in/daiken", twitter: "https://twitter.com/daiken", instagram: "", email: "contact@daiken.dev", whatsapp: "" },
+    siteTitle: "Daiken's Portfolio", contactEmail: "contact@daiken.dev", 
+    socialLinks: { github: "https://github.com/daiken", linkedin: "https://linkedin.com/in/daiken", twitter: "https://twitter.com/daiken", instagram: "", email: "contact@daiken.dev", whatsapp: "" }, 
     maintenanceMode: false,
     heroData: {
       typeText1: "> System Initialized...",
@@ -112,7 +102,7 @@ const authenticateToken = async (req: express.Request, res: express.Response, ne
     const authHeader = req.headers['authorization'];
     token = authHeader && authHeader.split(' ')[1];
   }
-
+  
   if (!token) return res.sendStatus(401);
 
   try {
@@ -128,10 +118,11 @@ app.set('trust proxy', 1);
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 app.use(cors({ origin: true, credentials: true }));
 app.use(cookieParser());
-app.use('/api', limiter);
+app.use('/api', limiter); 
 app.use(express.json());
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
+// 6. Tambahkan /api/health sebagai test pertama
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
@@ -194,19 +185,22 @@ const initTiDB = async () => {
     try {
         const connection = await getConnection();
         await connection.execute(`CREATE TABLE IF NOT EXISTS projects (id VARCHAR(100) PRIMARY KEY, title VARCHAR(255), cat VARCHAR(100), status VARCHAR(50), description TEXT, dateCreated VARCHAR(100), link VARCHAR(255), image VARCHAR(255))`);
+        try { await connection.execute('ALTER TABLE projects ADD COLUMN media JSON'); } catch(e){}
         await connection.execute(`CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(100) PRIMARY KEY, title VARCHAR(255), issuer VARCHAR(255), year INT, description TEXT, image VARCHAR(255), cat VARCHAR(100))`);
         try { await connection.execute('ALTER TABLE certificates ADD COLUMN image VARCHAR(255)'); } catch(e){}
         try { await connection.execute('ALTER TABLE certificates ADD COLUMN cat VARCHAR(100)'); } catch(e){}
         await connection.execute(`CREATE TABLE IF NOT EXISTS notifications (id VARCHAR(100) PRIMARY KEY, type VARCHAR(50), message TEXT, time VARCHAR(100), \`read\` BOOLEAN)`);
         await connection.execute(`CREATE TABLE IF NOT EXISTS categories (id VARCHAR(100) PRIMARY KEY, type VARCHAR(50), name VARCHAR(255))`);
-        await connection.execute(`CREATE TABLE IF NOT EXISTS settings (id INT PRIMARY KEY DEFAULT 1, siteTitle VARCHAR(255), contactEmail VARCHAR(255), socialLinks JSON, maintenanceMode BOOLEAN, heroData JSON, aboutData JSON)`);
-
+        await connection.execute(`CREATE TABLE IF NOT EXISTS settings (id INT PRIMARY KEY DEFAULT 1, siteTitle VARCHAR(255), siteLogo VARCHAR(255), contactEmail VARCHAR(255), socialLinks JSON, maintenanceMode BOOLEAN, heroData JSON, aboutData JSON)`);
+        
+        try { await connection.execute('ALTER TABLE settings ADD COLUMN siteLogo VARCHAR(255)'); } catch(e){}
         try { await connection.execute('ALTER TABLE settings ADD COLUMN heroData JSON'); } catch(e){}
         try { await connection.execute('ALTER TABLE settings ADD COLUMN aboutData JSON'); } catch(e){}
-
+        
+        // Ensure default settings exist
         const [settingsRes]: any = await connection.execute('SELECT * FROM settings WHERE id=1');
         if (settingsRes.length === 0) {
-            await connection.execute('INSERT INTO settings (id, siteTitle, contactEmail, socialLinks, maintenanceMode, heroData, aboutData) VALUES (1, ?, ?, ?, false, ?, ?)',
+            await connection.execute('INSERT INTO settings (id, siteTitle, contactEmail, socialLinks, maintenanceMode, heroData, aboutData) VALUES (1, ?, ?, ?, false, ?, ?)', 
             ["Daiken's Portfolio", "contact@daiken.dev", JSON.stringify({ github: "", linkedin: "", twitter: "", instagram:"", email:"", whatsapp:"" }), JSON.stringify(defaultDb.settings.heroData), JSON.stringify(defaultDb.settings.aboutData)]);
         }
         await connection.end();
@@ -234,10 +228,10 @@ app.get('/api/init', async (req, res) => {
         return res.json({ message: 'TiDB is not configured. Local fallback is being used.' });
     }
     try {
-        dbInitialized = false;
+        dbInitialized = false; 
         await initTiDB();
-        res.json({
-            success: true,
+        res.json({ 
+            success: true, 
             message: 'Database initialized successfully.',
             note: 'Default admin credentials are username: admin / password: admin123'
         });
@@ -262,15 +256,16 @@ app.post('/api/auth/login', async (req, res) => {
         .setProtectedHeader({ alg: 'HS256' })
         .setExpirationTime('24h')
         .sign(JWT_SECRET);
-
+        
+      // 4. Cookie sameSite: 'none' + secure: true untuk production
       res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        maxAge: 24 * 60 * 60 * 1000
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
       });
 
-      return res.json({ token });
+      return res.json({ token }); // Send token as well for backwards compatibility or fallback
   }
 
   return res.status(401).json({ error: 'Invalid credentials' });
@@ -285,9 +280,14 @@ app.get('/api/projects', async (req, res) => {
   if (isTiDB) {
       try {
         const rows = await handleQuery('SELECT * FROM projects');
-        if (rows) return res.json(rows);
-      } catch(e: any) {
-        if(!e?.message?.includes("doesn't exist")) console.error('TiDB Error:', e);
+        if (rows) {
+          return res.json(rows.map((r: any) => ({
+            ...r,
+            media: typeof r.media === 'string' ? JSON.parse(r.media) : (r.media || [])
+          })));
+        }
+      } catch(e: any) { 
+        if(!e?.message?.includes("doesn't exist")) console.error('TiDB Error:', e); 
       }
   }
   res.json(readDB().projects || []);
@@ -309,8 +309,8 @@ app.get('/api/settings', async (req, res) => {
         const rows = await handleQuery('SELECT * FROM settings LIMIT 1');
         if (rows && rows.length) {
             const row = rows[0];
-            return res.json({
-                ...row,
+            return res.json({ 
+                ...row, 
                 socialLinks: typeof row.socialLinks === 'string' ? JSON.parse(row.socialLinks) : row.socialLinks,
                 heroData: typeof row.heroData === 'string' ? JSON.parse(row.heroData) : row.heroData,
                 aboutData: typeof row.aboutData === 'string' ? JSON.parse(row.aboutData) : row.aboutData
@@ -324,7 +324,7 @@ app.get('/api/settings', async (req, res) => {
 app.post('/api/contact', async (req, res) => {
   const { name, email, message } = req.body;
   const msg = `Message from ${name} (${email}): ${message}`;
-
+  
   if (isTiDB) {
       const id = `NOTIF-${Date.now()}`;
       await handleQuery('INSERT INTO notifications (id, type, message, time, `read`) VALUES (?, ?, ?, ?, ?)', [id, 'USER', msg, new Date().toISOString(), false]);
@@ -338,46 +338,41 @@ app.post('/api/contact', async (req, res) => {
   res.json({ success: true });
 });
 
-// ─── FIXED UPLOAD ENDPOINT ───────────────────────────────────────────────────
 app.post('/api/admin/upload', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file provided' });
-
-    let uploadedUrl: string | null = null;
-
-    // Only try Cloudinary when credentials are valid (not placeholder values)
-    if (cloudinaryReady) {
-      try {
-        const result = await cloudinary.uploader.upload(req.file.path, {
-          folder: 'nexus_cms',
-          resource_type: 'auto'
-        });
-        uploadedUrl = result.secure_url;
-        console.log('Uploaded to Cloudinary:', uploadedUrl);
-      } catch (err: any) {
-        console.error('Cloudinary upload failed, using local storage:', err?.message || err);
-      }
+    
+    let uploadedUrl = null;
+    
+    // Check if Cloudinary is configured
+    if (process.env.CLOUDINARY_URL || (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY)) {
+       try {
+           const result = await cloudinary.uploader.upload(req.file.path, { 
+               folder: 'nexus_cms',
+               resource_type: 'auto'
+           });
+           uploadedUrl = result.secure_url;
+       } catch(err) {
+           console.error("Cloudinary failed, falling back to local:", err);
+       }
     }
-
-    // Always fall back to local storage if Cloudinary didn't work
+    
     if (!uploadedUrl) {
-      const publicDir = path.join(process.cwd(), 'uploads');
-      if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
-
-      const ext = path.extname(req.file.originalname) || '.jpg';
-      const filename = `upload_${Date.now()}${ext}`;
-      const targetPath = path.join(publicDir, filename);
-
-      fs.copyFileSync(req.file.path, targetPath);
-      uploadedUrl = `/uploads/${filename}`;
-      console.log('Saved locally:', uploadedUrl);
+        // Fallback: copy file to local uploads directory
+        const publicDir = path.join(process.cwd(), 'uploads');
+        if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
+        
+        const ext = path.extname(req.file.originalname);
+        const filename = `upload_${Date.now()}${ext}`;
+        const targetPath = path.join(publicDir, filename);
+        
+        fs.copyFileSync(req.file.path, targetPath);
+        uploadedUrl = `/uploads/${filename}`;
     }
-
-    // Clean up the multer temp file
-    try {
-      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-    } catch (_) {}
-
+    
+    // Cleanup temp
+    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    
     res.json({ url: uploadedUrl });
   } catch (error) {
     console.error('Upload error:', error);
@@ -389,15 +384,17 @@ app.post('/api/admin/upload', authenticateToken, upload.single('image'), async (
 app.post('/api/admin/projects', authenticateToken, async (req, res) => {
   const id = `PRJ-${Date.now()}`;
   if (isTiDB) {
-      await handleQuery('INSERT INTO projects (id, title, cat, status, description, dateCreated, link, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [
-          id, req.body.title||'', req.body.cat||'', req.body.status||'ACTIVE', req.body.description||'', req.body.dateCreated||'', req.body.link||'', req.body.image||''
+      await handleQuery('INSERT INTO projects (id, title, cat, status, description, dateCreated, link, image, media) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+          id, req.body.title||'', req.body.cat||'', req.body.status||'ACTIVE', req.body.description||'', req.body.dateCreated||'', req.body.link||'', req.body.image||'', JSON.stringify(req.body.media || [])
       ]);
       const newProj = await handleQuery('SELECT * FROM projects WHERE id=?', [id]);
-      return res.json(newProj?.[0] || req.body);
+      const row = newProj?.[0] || req.body;
+      if (typeof row.media === 'string') row.media = JSON.parse(row.media);
+      return res.json(row);
   }
   const db = readDB();
   if(!db.projects) db.projects = [];
-  const newProject = { id, ...req.body };
+  const newProject = { id, media: req.body.media || [], ...req.body };
   db.projects.push(newProject);
   writeDB(db);
   res.json(newProject);
@@ -408,15 +405,20 @@ app.put('/api/admin/projects/:id', authenticateToken, async (req, res) => {
       const p = req.body;
       const updates = [];
       const params = [];
-      for (const key of ['title', 'cat', 'status', 'description', 'dateCreated', 'link', 'image']) {
-          if (p[key] !== undefined) { updates.push(`${key}=?`); params.push(p[key]); }
+      for (const key of ['title', 'cat', 'status', 'description', 'dateCreated', 'link', 'image', 'media']) {
+          if (p[key] !== undefined) { 
+            updates.push(`${key}=?`); 
+            params.push(key === 'media' ? JSON.stringify(p[key]) : p[key]); 
+          }
       }
       if (updates.length > 0) {
           params.push(req.params.id);
           await handleQuery(`UPDATE projects SET ${updates.join(', ')} WHERE id=?`, params);
       }
       const updated = await handleQuery('SELECT * FROM projects WHERE id=?', [req.params.id]);
-      return res.json(updated?.[0] || p);
+      const row = updated?.[0] || p;
+      if (typeof row.media === 'string') row.media = JSON.parse(row.media);
+      return res.json(row);
   }
   const db = readDB();
   if(!db.projects) db.projects = [];
@@ -579,21 +581,21 @@ app.put('/api/admin/settings', authenticateToken, async (req, res) => {
       const p = req.body;
       const updates = [];
       const params = [];
-      for (const key of ['siteTitle', 'contactEmail', 'socialLinks', 'maintenanceMode', 'heroData', 'aboutData']) {
-          if (p[key] !== undefined) {
-              updates.push(`${key}=?`);
-              params.push((key === 'socialLinks' || key === 'heroData' || key === 'aboutData') ? JSON.stringify(p[key]) : p[key]);
+      for (const key of ['siteTitle', 'siteLogo', 'contactEmail', 'socialLinks', 'maintenanceMode', 'heroData', 'aboutData']) {
+          if (p[key] !== undefined) { 
+              updates.push(`${key}=?`); 
+              params.push((key === 'socialLinks' || key === 'heroData' || key === 'aboutData') ? JSON.stringify(p[key]) : p[key]); 
           }
       }
       if (updates.length > 0) {
-          params.push(1);
+          params.push(1); // settings ID is 1
           await handleQuery(`UPDATE settings SET ${updates.join(', ')} WHERE id=?`, params);
       }
       const rows = await handleQuery('SELECT * FROM settings WHERE id=1');
       if (rows?.[0]) {
           const row = rows[0];
-          return res.json({
-              ...row,
+          return res.json({ 
+              ...row, 
               socialLinks: typeof row.socialLinks === 'string' ? JSON.parse(row.socialLinks) : row.socialLinks,
               heroData: typeof row.heroData === 'string' ? JSON.parse(row.heroData) : row.heroData,
               aboutData: typeof row.aboutData === 'string' ? JSON.parse(row.aboutData) : row.aboutData
